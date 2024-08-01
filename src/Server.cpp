@@ -1,49 +1,61 @@
+#include <cstdlib>
+#include <string_view>
 #include <iostream>
 #include <string>
+#include <print>
 
-bool match_pattern(const std::string& input_line, const std::string& pattern) {
-    if (pattern.length() == 1) {
-        return input_line.find(pattern) != std::string::npos;
-    }
-    else {
-        throw std::runtime_error("Unhandled pattern " + pattern);
-    }
-}
+bool match_pattern(const std::string& input_line, const std::string& pattern);
 
-int main(int argc, char* argv[]) {
-    // Flush after every std::cout / std::cerr
+int main(int argc, char** argv) 
+{
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    std::cout << "Logs from your program will appear here" << std::endl;
+    std::println(std::cout, "Logs from your program will appear here");
 
-    if (argc != 3) {
-        std::cerr << "Expected two arguments" << std::endl;
-        return 1;
+    if(argc != 3) {
+        std::println(std::cerr, "Expected two arguments");
+        return EXIT_FAILURE;
     }
 
-    std::string flag = argv[1];
-    std::string pattern = argv[2];
+    std::string flag{argv[1]};
+    std::string pattern{argv[2]};
 
-    if (flag != "-E") {
-        std::cerr << "Expected first argument to be '-E'" << std::endl;
-        return 1;
+    if(flag != "-E") {
+        std::println("Expected first argument to be '-E'");
+        return EXIT_FAILURE;
     }
 
-    // Uncomment this block to pass the first stage
-    //
-    // std::string input_line;
-    // std::getline(std::cin, input_line);
-    //
-    // try {
-    //     if (match_pattern(input_line, pattern)) {
-    //         return 0;
-    //     } else {
-    //         return 1;
-    //     }
-    // } catch (const std::runtime_error& e) {
-    //     std::cerr << e.what() << std::endl;
-    //     return 1;
-    // }
+    std::string input_line{};
+    std::getline(std::cin, input_line);
+    
+    try 
+    {
+        if(match_pattern(input_line, pattern)) 
+        {
+            return EXIT_SUCCESS;
+        } 
+        else 
+        {
+            return EXIT_FAILURE;
+        }
+    } 
+    catch(const std::runtime_error& e) 
+    {
+        std::cerr << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+    return EXIT_FAILURE;
+}
+
+bool match_pattern(const std::string& input_line, const std::string& pattern)
+{
+    if(pattern.length() == 1) 
+    {
+        return input_line.find(pattern) != std::string::npos;
+    }
+    else 
+    {
+        throw std::runtime_error("Unhandled pattern " + pattern);
+    }
 }
