@@ -1,8 +1,6 @@
 #include <cstdlib>
-#include <string_view>
 #include <iostream>
 #include <string>
-#include <print>
 
 bool match_pattern(const std::string& input_line, const std::string& pattern);
 
@@ -11,18 +9,20 @@ int main(int argc, char** argv)
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
-    std::println(std::cout, "Logs from your program will appear here");
+    std::cout << "Logs from your program will appear here\n";
 
-    if(argc != 3) {
-        std::println(std::cerr, "Expected two arguments");
+    if(argc != 3) 
+    {
+        std::cerr << "Expected two arguments\n";
         return EXIT_FAILURE;
     }
 
     std::string flag{argv[1]};
     std::string pattern{argv[2]};
 
-    if(flag != "-E") {
-        std::println("Expected first argument to be '-E'");
+    if(flag != "-E") 
+    {
+        std::cerr << "Expected first argument to be '-E'\n";
         return EXIT_FAILURE;
     }
 
@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     } 
     catch(const std::runtime_error& e) 
     {
-        std::cerr << e.what() << std::endl;
+        std::cerr << e.what() << '\n';
         return EXIT_FAILURE;
     }
     return EXIT_FAILURE;
