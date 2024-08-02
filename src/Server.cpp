@@ -20,8 +20,6 @@ int main(int argc, char** argv)
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
-    std::cout << "Logs from your program will appear here\n";
-
     if(argc != 3) 
     {
         std::cerr << "Error: expected two arguments\n";
@@ -30,7 +28,6 @@ int main(int argc, char** argv)
 
     std::string flag{argv[1]};
     std::string pattern{argv[2]};
-    std::cout << pattern << '\n';
 
     if(flag != "-E") 
     {
@@ -43,10 +40,9 @@ int main(int argc, char** argv)
 
     if(process_input(input, pattern)) 
     {
-        std::cout << "Matched\n";
         return EXIT_SUCCESS;
     } 
-    std::cout << "Unmatched\n";
+    std::cout << "Failure\n";
     return EXIT_FAILURE;
 }
 
@@ -66,6 +62,10 @@ array_type parse_pattern(const std::string& pattern)
             {
                 patterns.emplace_back(pattern.substr(i, 2));
                 ++i;
+            }
+            else if(pattern[i] == '+')
+            {
+                patterns.back() += '+';
             }
             else
             {
@@ -88,30 +88,41 @@ bool process_input(const std::string& input, const std::string& pattern)
 {
     array_type patterns{parse_pattern(pattern)};
     std::size_t currentPattern{0};
-    for(std::size_t i{0}; i < std::size(input); )
+    for(std::size_t i{0}; i < std::size(input) && currentPattern < std::size(patterns); )
     {
-        if(currentPattern >= std::size(patterns))
-        {
-            break;       
-        }
         if(match_start_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
             continue;
         }
-        else if(match_group(input[i], patterns[currentPattern]))
+        if(match_group(input[i], patterns[currentPattern]))
         {
             ++currentPattern;
         }
-        else if(match_class(input[i], patterns[currentPattern]))
+        else if(auto found{patterns[currentPattern].find("+")}; 
+                found != std::string::npos)
         {
+            std::string subPat{patterns[currentPattern].substr(0, found)};
+            while(match_group(input[i], subPat) || match_class(input[i], subPat))
+            {
+                if(i >= std::size(input) - 1)
+                {
+                    break;
+                }
+                ++i;
+            }
+            ++currentPattern;
+            continue;
+        }
+        else if(match_class(input[i], patterns[currentPattern]))
+        {   
             ++currentPattern;
         }
         else
         {
             currentPattern = 0;   
         }
-        if(match_end_anchor(i, input, patterns[currentPattern]))
+        if(currentPattern < std::size(patterns) && match_end_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
         }
@@ -140,7 +151,7 @@ bool match_end_anchor(std::size_t index, const std::string& input, const std::st
 {
     if(pattern == "$")
     {
-        if(std::size(input) - index == 1)
+        if(std::size(input) - index <= 1)
         {
             return true;
         }
@@ -155,7 +166,7 @@ bool match_end_anchor(std::size_t index, const std::string& input, const std::st
 bool match_group(const char character, const std::string& pattern)
 {
     if(auto start{pattern.find("[")}, finish{pattern.find("]")}; 
-            (start != std::string::npos && finish != std::string::npos) && (start < finish))
+      (start != std::string::npos && finish != std::string::npos) && (start < finish))
     {
         bool matchCondition{true};
         if(pattern[start + 1] == '^')
@@ -189,7 +200,7 @@ bool match_class(const char ch, const std::string& pattern)
     {
         return static_cast<bool>(std::isalnum(ch));
     }
-    else if(std::size(pattern) == 1 && pattern[0] != '$') 
+    else if(std::size(pattern) == 1) 
     {
         return pattern[0] == ch;
     }
