@@ -70,11 +70,23 @@ bool match_pattern(const std::string& inputLine, const std::string& pattern)
     }
     else if(pattern.length() == 1) 
     {
-        
         return inputLine.find(pattern) != std::string::npos;
+    }
+    else if(auto start{pattern.find("[")}, finish{pattern.find("]")}; 
+            (start != std::string::npos && finish != std::string::npos) && (start < finish))
+    {
+        auto characterGroup{pattern.substr(start + 1, finish - start - 1)};
+        for(const auto& character : characterGroup)
+        {
+            if(inputLine.find(character) != std::string::npos)
+            {
+                return true;
+            }
+        }
     }
     else 
     {
         throw std::runtime_error("Unhandled pattern " + pattern);
     }
+    return false;
 }
