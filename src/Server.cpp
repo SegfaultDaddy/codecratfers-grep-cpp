@@ -10,7 +10,9 @@ using array_type = std::vector<std::string>;
 
 array_type parse_pattern(const std::string& pattern);
 bool process_input(const std::string& input, const std::string& pattern);
-bool match_pattern(const char character, const std::string& pattern);
+bool match_anchor(std::size_t index, const std::string& input, const std::string& pattern);
+bool match_group(const char ch, const std::string& pattern);
+bool match_class(const char ch, const std::string& pattern);
 
 int main(int argc, char** argv) 
 {
@@ -36,9 +38,8 @@ int main(int argc, char** argv)
     }
 
     std::string input{};
-    std::cin >> std::noskipws;
     std::getline(std::cin, input);
-    std::cout << input << '\n';
+
     try 
     {
         if(process_input(input, pattern)) 
@@ -98,14 +99,21 @@ bool process_input(const std::string& input, const std::string& pattern)
 {
     array_type patterns{parse_pattern(pattern)};
     std::size_t currentPattern{0};
-    std::cout << std::size(patterns) << '\n';
-    for(const auto ch : input)
+    for(const auto [i, ch] : input | std::views::enumerate)
     {
         if(currentPattern >= std::size(patterns))
         {
-            break;
+            break;       
         }
-        if(match_pattern(ch, patterns[currentPattern]))
+        if(match_class(ch, patterns[currentPattern]))
+        {
+            ++currentPattern;
+        }
+        else if(match_group(ch, patterns[currentPattern]))
+        {
+            ++currentPattern;
+        }
+        else if(match_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
         }
@@ -117,21 +125,14 @@ bool process_input(const std::string& input, const std::string& pattern)
     return currentPattern >= std::size(patterns);
 }
 
-bool match_pattern(const char character, const std::string& pattern)
+bool match_anchor(std::size_t index, const std::string& input, const std::string& pattern)
 {
-    if(pattern == "\\d")
-    {
-        return static_cast<bool>(std::isdigit(character));
-    }
-    else if(pattern == "\\w")
-    {
-        return static_cast<bool>(std::isalnum(character));
-    }
-    else if(pattern.length() == 1) 
-    {
-        return pattern[0] == character;
-    }
-    else if(auto start{pattern.find("[")}, finish{pattern.find("]")}; 
+    return index == 0 || input.at(index - 1) == '\n';
+}
+
+bool match_group(const char ch, const std::string& pattern)
+{
+    if(auto start{pattern.find("[")}, finish{pattern.find("]")}; 
             (start != std::string::npos && finish != std::string::npos) && (start < finish))
     {
         bool matchCondition{true};
@@ -142,7 +143,7 @@ bool match_pattern(const char character, const std::string& pattern)
         }
         for(const auto ch : std::ranges::subrange(std::cbegin(pattern) + start + 1, std::cbegin(pattern) + finish))
         {
-            if(ch == character)
+            if(ch == ch)
             {
                 return matchCondition;
             }
@@ -150,6 +151,31 @@ bool match_pattern(const char character, const std::string& pattern)
         return !matchCondition;
     }
     else 
+    {
+        throw std::runtime_error("Error: unhandled pattern " + pattern);
+    }
+    return false;
+}
+
+bool match_class(const char ch, const std::string& pattern)
+{
+    if(pattern == ".")
+    {
+        return true;
+    }
+    else if(pattern == "\\d")
+    {
+        return static_cast<bool>(std::isdigit(ch));
+    }
+    else if(pattern == "\\w")
+    {
+        return static_cast<bool>(std::isalnum(ch));
+    }
+    else if(pattern.length() == 1) 
+    {
+        return pattern[0] == ch;
+    }
+    else
     {
         throw std::runtime_error("Error: unhandled pattern " + pattern);
     }
