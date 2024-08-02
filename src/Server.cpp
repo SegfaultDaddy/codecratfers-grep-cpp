@@ -34,10 +34,12 @@ int main(int argc, char** argv)
     {
         if(match_pattern(inputLine, pattern)) 
         {
+            std::cout << "Matched\n";
             return EXIT_SUCCESS;
         } 
         else 
         {
+            std::cout << "Unmatched\n";
             return EXIT_FAILURE;
         }
     } 
@@ -51,13 +53,20 @@ int main(int argc, char** argv)
 
 bool match_pattern(const std::string& inputLine, const std::string& pattern)
 {
-    const char* patt{};
     if(pattern == R"(\d)")
     {
-        return std::find_if(std::begin(inputLine), std::end(inputLine), [](const auto letter)
+        return std::find_if(std::begin(inputLine), std::end(inputLine), [](const auto character)
         {
-            return static_cast<bool>(std::isdigit(letter));
+            return static_cast<bool>(std::isdigit(character));
         }) != std::end(inputLine);
+    }
+    else if(pattern == R"(\w)")
+    {
+        return std::find_if(std::begin(inputLine), std::end(inputLine), [](const auto character)
+        {
+            return static_cast<bool>(std::isalnum(character));
+        }) != std::end(inputLine);
+
     }
     else if(pattern.length() == 1) 
     {
