@@ -98,6 +98,7 @@ bool process_input(const std::string& input, const std::string& pattern)
 {
     array_type patterns{parse_pattern(pattern)};
     std::size_t currentPattern{0};
+    std::cout << std::size(patterns) << '\n';
     for(const auto ch : input)
     {
         if(currentPattern >= std::size(patterns))
@@ -146,6 +147,7 @@ bool match_pattern(const char character, const std::string& pattern)
                 return matchCondition;
             }
         }
+        return !matchCondition;
     }
     else 
     {
