@@ -40,24 +40,12 @@ int main(int argc, char** argv)
     std::string input{};
     std::getline(std::cin, input);
 
-    try 
+    if(process_input(input, pattern)) 
     {
-        if(process_input(input, pattern)) 
-        {
-            std::cout << "Matched\n";
-            return EXIT_SUCCESS;
-        } 
-        else 
-        {
-            std::cout << "Unmatched\n";
-            return EXIT_FAILURE;
-        }
+        std::cout << "Matched\n";
+        return EXIT_SUCCESS;
     } 
-    catch(const std::runtime_error& error) 
-    {
-        std::cerr << error.what() << '\n';
-        return EXIT_FAILURE;
-    }
+    std::cout << "Unmatched\n";
     return EXIT_FAILURE;
 }
 
@@ -150,10 +138,6 @@ bool match_group(const char ch, const std::string& pattern)
         }
         return !matchCondition;
     }
-    else 
-    {
-        throw std::runtime_error("Error: unhandled pattern " + pattern);
-    }
     return false;
 }
 
@@ -174,10 +158,6 @@ bool match_class(const char ch, const std::string& pattern)
     else if(pattern.length() == 1) 
     {
         return pattern[0] == ch;
-    }
-    else
-    {
-        throw std::runtime_error("Error: unhandled pattern " + pattern);
     }
     return false;
 }
