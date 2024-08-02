@@ -87,21 +87,22 @@ bool process_input(const std::string& input, const std::string& pattern)
 {
     array_type patterns{parse_pattern(pattern)};
     std::size_t currentPattern{0};
-    for(const auto [i, ch] : input | std::views::enumerate)
+    for(std::size_t i{0}; i < std::size(input); )
     {
         if(currentPattern >= std::size(patterns))
         {
             break;       
         }
-        if(match_class(ch, patterns[currentPattern]))
+        if(match_anchor(i, input, patterns[currentPattern]))
+        {
+            ++currentPattern;
+            continue;
+        }
+        else if(match_group(input[i], patterns[currentPattern]))
         {
             ++currentPattern;
         }
-        else if(match_group(ch, patterns[currentPattern]))
-        {
-            ++currentPattern;
-        }
-        else if(match_anchor(i, input, patterns[currentPattern]))
+        else if(match_class(input[i], patterns[currentPattern]))
         {
             ++currentPattern;
         }
@@ -109,16 +110,28 @@ bool process_input(const std::string& input, const std::string& pattern)
         {
             currentPattern = 0;
         }
+        ++i;
     }
     return currentPattern >= std::size(patterns);
 }
 
 bool match_anchor(std::size_t index, const std::string& input, const std::string& pattern)
 {
-    return index == 0 || input.at(index - 1) == '\n';
+    if(pattern == "^")
+    {
+        if(index == 0)
+        {
+            return true;
+        }
+        else
+        {
+            return input.at(index - 1) == '\n';
+        }
+    }
+    return false;
 }
 
-bool match_group(const char ch, const std::string& pattern)
+bool match_group(const char character, const std::string& pattern)
 {
     if(auto start{pattern.find("[")}, finish{pattern.find("]")}; 
             (start != std::string::npos && finish != std::string::npos) && (start < finish))
@@ -131,7 +144,7 @@ bool match_group(const char ch, const std::string& pattern)
         }
         for(const auto ch : std::ranges::subrange(std::cbegin(pattern) + start + 1, std::cbegin(pattern) + finish))
         {
-            if(ch == ch)
+            if(ch == character)
             {
                 return matchCondition;
             }
@@ -155,7 +168,7 @@ bool match_class(const char ch, const std::string& pattern)
     {
         return static_cast<bool>(std::isalnum(ch));
     }
-    else if(pattern.length() == 1) 
+    else if(std::size(pattern) == 1) 
     {
         return pattern[0] == ch;
     }
