@@ -10,7 +10,8 @@ using array_type = std::vector<std::string>;
 
 array_type parse_pattern(const std::string& pattern);
 bool process_input(const std::string& input, const std::string& pattern);
-bool match_anchor(std::size_t index, const std::string& input, const std::string& pattern);
+bool match_start_anchor(std::size_t index, const std::string& input, const std::string& pattern);
+bool match_end_anchor(std::size_t index, const std::string& input, const std::string& pattern);
 bool match_group(const char ch, const std::string& pattern);
 bool match_class(const char ch, const std::string& pattern);
 
@@ -93,7 +94,7 @@ bool process_input(const std::string& input, const std::string& pattern)
         {
             break;       
         }
-        if(match_anchor(i, input, patterns[currentPattern]))
+        if(match_start_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
             continue;
@@ -108,14 +109,18 @@ bool process_input(const std::string& input, const std::string& pattern)
         }
         else
         {
-            currentPattern = 0;
+            currentPattern = 0;   
+        }
+        if(match_end_anchor(i, input, patterns[currentPattern]))
+        {
+            ++currentPattern;
         }
         ++i;
     }
     return currentPattern >= std::size(patterns);
 }
 
-bool match_anchor(std::size_t index, const std::string& input, const std::string& pattern)
+bool match_start_anchor(std::size_t index, const std::string& input, const std::string& pattern)
 {
     if(pattern == "^")
     {
@@ -125,7 +130,23 @@ bool match_anchor(std::size_t index, const std::string& input, const std::string
         }
         else
         {
-            return input.at(index - 1) == '\n';
+            return input[index - 1] == '\n';
+        }
+    }
+    return false;
+}
+
+bool match_end_anchor(std::size_t index, const std::string& input, const std::string& pattern)
+{
+    if(pattern == "$")
+    {
+        if(std::size(input) - index == 1)
+        {
+            return true;
+        }
+        else
+        {
+            return input[index + 1] == '\n';
         }
     }
     return false;
@@ -168,7 +189,7 @@ bool match_class(const char ch, const std::string& pattern)
     {
         return static_cast<bool>(std::isalnum(ch));
     }
-    else if(std::size(pattern) == 1) 
+    else if(std::size(pattern) == 1 && pattern[0] != '$') 
     {
         return pattern[0] == ch;
     }
