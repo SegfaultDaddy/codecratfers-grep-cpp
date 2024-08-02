@@ -36,8 +36,9 @@ int main(int argc, char** argv)
     }
 
     std::string input{};
+    std::cin >> std::noskipws;
     std::getline(std::cin, input);
-
+    std::cout << input << '\n';
     try 
     {
         if(process_input(input, pattern)) 
@@ -99,17 +100,17 @@ bool process_input(const std::string& input, const std::string& pattern)
     std::size_t currentPattern{0};
     for(const auto ch : input)
     {
+        if(currentPattern >= std::size(patterns))
+        {
+            break;
+        }
         if(match_pattern(ch, patterns[currentPattern]))
         {
             ++currentPattern;
         }
-        else if(currentPattern < std::size(patterns))
-        {
-            currentPattern = 0;
-        }
         else
         {
-            break;
+            currentPattern = 0;
         }
     }
     return currentPattern >= std::size(patterns);
