@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <ranges>
 #include <algorithm>
 
 bool match_pattern(const std::string& inputLine, const std::string& pattern);
@@ -14,7 +15,7 @@ int main(int argc, char** argv)
 
     if(argc != 3) 
     {
-        std::cerr << "Expected two arguments\n";
+        std::cerr << "Error: expected two arguments\n";
         return EXIT_FAILURE;
     }
 
@@ -23,7 +24,7 @@ int main(int argc, char** argv)
     std::cout << pattern << '\n';
     if(flag != "-E") 
     {
-        std::cerr << "Expected first argument to be '-E'\n";
+        std::cerr << "Error: expected first argument to be '-E'\n";
         return EXIT_FAILURE;
     }
 
@@ -76,17 +77,31 @@ bool match_pattern(const std::string& inputLine, const std::string& pattern)
             (start != std::string::npos && finish != std::string::npos) && (start < finish))
     {
         auto characterGroup{pattern.substr(start + 1, finish - start - 1)};
-        for(const auto& character : characterGroup)
+        if(characterGroup.at(0) == '^')
         {
-            if(inputLine.find(character) != std::string::npos)
+            for(const auto& character : std::ranges::subrange(std::begin(characterGroup) + 1, std::end(characterGroup)))
             {
-                return true;
+                if(inputLine.find(character) != std::string::npos)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else
+        {
+            for(const auto& character : characterGroup)
+            {
+                if(inputLine.find(character) != std::string::npos)
+                {
+                    return true;
+                }
             }
         }
     }
     else 
     {
-        throw std::runtime_error("Unhandled pattern " + pattern);
+        throw std::runtime_error("Error: unhandled pattern " + pattern);
     }
     return false;
 }
