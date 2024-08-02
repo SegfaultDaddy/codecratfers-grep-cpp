@@ -1,10 +1,16 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <functional>
 #include <ranges>
+#include <array>
 #include <algorithm>
 
-bool match_pattern(const std::string& inputLine, const std::string& pattern);
+using array_type = std::vector<std::string>;
+
+array_type parse_pattern(const std::string& pattern);
+bool process_input(const std::string& input, const std::string& pattern);
+bool match_pattern(const char character, const std::string& pattern);
 
 int main(int argc, char** argv) 
 {
@@ -22,18 +28,19 @@ int main(int argc, char** argv)
     std::string flag{argv[1]};
     std::string pattern{argv[2]};
     std::cout << pattern << '\n';
+
     if(flag != "-E") 
     {
         std::cerr << "Error: expected first argument to be '-E'\n";
         return EXIT_FAILURE;
     }
 
-    std::string inputLine{};
-    std::getline(std::cin, inputLine);
-    
+    std::string input{};
+    std::getline(std::cin, input);
+
     try 
     {
-        if(match_pattern(inputLine, pattern)) 
+        if(process_input(input, pattern)) 
         {
             std::cout << "Matched\n";
             return EXIT_SUCCESS;
@@ -52,50 +59,90 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
 }
 
-bool match_pattern(const std::string& inputLine, const std::string& pattern)
+array_type parse_pattern(const std::string& pattern)
 {
-    if(pattern == R"(\d)")
-    {
-        return std::find_if(std::begin(inputLine), std::end(inputLine), [](const auto character)
+    array_type patterns{};
+    const std::size_t size{std::size(pattern)};
+    for(std::size_t i{0}, j{size}; i < size; ++i)
+    {   
+        if(j >= size)
         {
-            return static_cast<bool>(std::isdigit(character));
-        }) != std::end(inputLine);
+            if(pattern[i] == '[')
+            {
+                j = i;
+            }
+            else if(pattern[i] == '\\')
+            {
+                patterns.emplace_back(pattern.substr(i, 2));
+                ++i;
+            }
+            else
+            {
+                patterns.emplace_back(std::string{pattern[i]});
+            }
+        }
+        else
+        {
+            if(pattern[i] == ']')
+            {
+                patterns.emplace_back(pattern.substr(j, i - j + 1));
+                j = size;
+            }
+        }
     }
-    else if(pattern == R"(\w)")
-    {
-        return std::find_if(std::begin(inputLine), std::end(inputLine), [](const auto character)
-        {
-            return static_cast<bool>(std::isalnum(character));
-        }) != std::end(inputLine);
+    return patterns;
+}
 
+bool process_input(const std::string& input, const std::string& pattern)
+{
+    array_type patterns{parse_pattern(pattern)};
+    std::size_t currentPattern{0};
+    for(const auto ch : input)
+    {
+        if(match_pattern(ch, patterns[currentPattern]))
+        {
+            ++currentPattern;
+        }
+        else if(currentPattern < std::size(patterns))
+        {
+            currentPattern = 0;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return currentPattern >= std::size(patterns);
+}
+
+bool match_pattern(const char character, const std::string& pattern)
+{
+    if(pattern == "\\d")
+    {
+        return static_cast<bool>(std::isdigit(character));
+    }
+    else if(pattern == "\\w")
+    {
+        return static_cast<bool>(std::isalnum(character));
     }
     else if(pattern.length() == 1) 
     {
-        return inputLine.find(pattern) != std::string::npos;
+        return pattern[0] == character;
     }
     else if(auto start{pattern.find("[")}, finish{pattern.find("]")}; 
             (start != std::string::npos && finish != std::string::npos) && (start < finish))
     {
-        auto characterGroup{pattern.substr(start + 1, finish - start - 1)};
-        if(characterGroup.at(0) == '^')
+        bool matchCondition{true};
+        if(pattern[start + 1] == '^')
         {
-            for(const auto& character : std::ranges::subrange(std::begin(characterGroup) + 1, std::end(characterGroup)))
-            {
-                if(inputLine.find(character) != std::string::npos)
-                {
-                    return false;
-                }
-            }
-            return true;
+            matchCondition = false;
+            start += 1;
         }
-        else
+        for(const auto ch : std::ranges::subrange(std::cbegin(pattern) + start + 1, std::cbegin(pattern) + finish))
         {
-            for(const auto& character : characterGroup)
+            if(ch == character)
             {
-                if(inputLine.find(character) != std::string::npos)
-                {
-                    return true;
-                }
+                return matchCondition;
             }
         }
     }
