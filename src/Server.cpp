@@ -134,29 +134,23 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
             ++currentPattern;
             continue;
         }
-        if(auto match{match_alternation(i, input, patterns[currentPattern])}; 
-           match.first)
-        {
-            i = match.second - 1;
-            ++currentPattern;
-        }
-        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups)}; 
+        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups)};
                 match.first)
         {
             i = match.second - 1;
             ++currentPattern;
-            continue;
         }
-        else if(match_group(input[i], patterns[currentPattern]))
+        else if(auto match{match_alternation(i, input, patterns[currentPattern])}; 
+                match.first)
         {
+            i = match.second - 1;
             ++currentPattern;
         }
-        else if(std::size_t result{match_one_or_more(i, input, patterns[currentPattern])};
-                result > i)
+        else if(auto result{match_one_or_more(i, input, patterns[currentPattern])};
+               result > i) 
         {
-            i = result;
+            i = result - 1;
             ++currentPattern;
-            continue;
         }
         else if(auto result{match_zero_or_one(i, input, patterns[currentPattern])};
                 result.has_value())
@@ -165,8 +159,12 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
             ++currentPattern;
             continue;
         }
+        else if(match_group(input[i], patterns[currentPattern]))
+        {
+            ++currentPattern;
+        }
         else if(match_class(input[i], patterns[currentPattern]))
-        {   
+        {
             ++currentPattern;
         }
         else
@@ -191,27 +189,11 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
     if(auto start{pattern.find("(")}, finish{pattern.find(")")};
        start != std::string::npos && finish != std::string::npos)
     {
-        return process_input(input, pattern.substr(start + 1, finish - start - 1), index);
+        return process_input(input, pattern.substr(start + 1, finish - start - 1), index);;
     }
-    else if(pattern[0] == '\\')
+    else if(pattern == "\\1")
     {
-        bool isDigit{false};
-        auto substr{pattern.substr(1, std::size(pattern) - 1)};
-        std::for_each(std::begin(substr), std::end(substr), [&](const auto& elem)
-                      {
-                            isDigit = std::isdigit(elem);
-                      });
-        if(isDigit)
-        {
-            auto value{std::stoi(substr) - 1};
-            auto start{captured[value].find("(")};
-            auto finish{captured[value].find(")")};
-            if(start != std::string::npos 
-               && finish != std::string::npos)
-            {
-                return process_input(input, captured[value].substr(start + 1, finish - start - 1), index);
-            }
-        }
+        return process_input(input, captured[0].substr(1, std::size(captured[0]) - 2), index);
     }
     return pair_type{false, index};
 }
@@ -242,8 +224,8 @@ std::size_t match_one_or_more(const std::size_t index, const std::string& input,
     {
         std::string subPat{pattern.substr(0, found)};
         std::size_t i{index};
-        while(i < std::size(input) 
-              && ((match_group(input[i], subPat) || match_class(input[i], subPat))))
+        while(index < std::size(input) && (match_group(input[i], subPat) 
+              || match_class(input[i], subPat)))
         {
             ++i;
         }
