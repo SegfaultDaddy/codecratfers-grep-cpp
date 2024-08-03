@@ -229,6 +229,7 @@ bool match_group(const char character, const std::string& pattern)
 bool match_class(const char ch, const std::string& pattern)
 {
     if(pattern == ".")
+        //wildcard
     {
         return true;
     }
