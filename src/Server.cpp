@@ -13,6 +13,7 @@ array_type parse_pattern(const std::string& pattern);
 bool process_input(const std::string& input, const std::string& pattern);
 std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern);
 std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern);
+bool match_alternation(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_start_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_end_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_group(const char ch, const std::string& pattern);
@@ -53,11 +54,15 @@ array_type parse_pattern(const std::string& pattern)
 {
     array_type patterns{};
     const std::size_t size{std::size(pattern)};
-    for(std::size_t i{0}, j{size}; i < size; ++i)
+    for(std::size_t i{0}, j{size}, k{size}; i < size; ++i)
     {   
         if(j >= size)
         {
-            if(pattern[i] == '[')
+            if(pattern[i] == '(')
+            {
+                j = i;
+            }
+            else if(pattern[i] == '[')
             {
                 j = i;
             }
@@ -86,6 +91,11 @@ array_type parse_pattern(const std::string& pattern)
                 patterns.emplace_back(pattern.substr(j, i - j + 1));
                 j = size;
             }
+            if(pattern[i] == ')')
+            {
+                patterns.emplace_back(pattern.substr(j, i - j + 1));
+                j = size;
+            }
         }
     }
     return patterns;
@@ -101,6 +111,10 @@ bool process_input(const std::string& input, const std::string& pattern)
         {
             ++currentPattern;
             continue;
+        }
+        if(match_alternation(i, input, patterns[currentPattern]))
+        {
+            ++currentPattern;
         }
         else if(match_group(input[i], patterns[currentPattern]))
         {
@@ -141,6 +155,26 @@ bool process_input(const std::string& input, const std::string& pattern)
     return currentPattern >= std::size(patterns);
 }
 
+bool match_alternation(const std::size_t index, const std::string& input, const std::string& pattern)
+{
+    bool matched{false};
+    if(auto found{pattern.find('|')}; 
+       found != std::string::npos)
+    {
+        std::array<std::string, 2> patterns{pattern.substr(1, found - 1), pattern.substr(found + 1, std::size(pattern) - found - 2)};
+        const std::string sub{input.substr(index, std::size(input) - index)};
+        for(const auto& pat : patterns)
+        {
+            if(process_input(sub, pat))
+            {
+                matched = true;
+                break;
+            }
+        }
+    }
+    return matched;
+}
+
 std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern)
 {
     if(auto found{pattern.find("+")}; 
@@ -157,7 +191,6 @@ std::size_t match_one_or_more(const std::size_t index, const std::string& input,
     }
     return index;
 }
-
 
 std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern)
 {
@@ -229,7 +262,6 @@ bool match_group(const char character, const std::string& pattern)
 bool match_class(const char ch, const std::string& pattern)
 {
     if(pattern == ".")
-        //wildcard
     {
         return true;
     }
