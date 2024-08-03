@@ -191,7 +191,7 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
     {
         return process_input(input, pattern.substr(start + 1, finish - start - 1), index);;
     }
-    else if(pattern == "\\")
+    else if(pattern[0] == '\\')
     {
         bool isDigit{false};
         for(const auto& pat : std::ranges::subrange(std::begin(pattern) + 1, std::end(pattern)))
@@ -201,6 +201,7 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
         if(isDigit)
         {
             auto digit{std::stoi(pattern.substr(1, std::size(pattern) - 1)) - 1};
+            std::cout << digit << '\n';
             if(captured[digit].find('|') != std::string::npos)
             {
                 return process_input(input, captured[digit], index);
