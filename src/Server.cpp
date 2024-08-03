@@ -15,8 +15,8 @@ array_type parse_captured_groups(const array_type& patterns);
 pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start);
 std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern);
 std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern);
-pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, const array_type& captured);
-pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern);
+pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured);
+pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured);
 bool match_start_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_end_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_group(const char ch, const std::string& pattern);
@@ -124,7 +124,7 @@ array_type parse_captured_groups(const array_type& patterns)
 pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start = 0)
 {
     auto patterns{parse_pattern(pattern)};
-    auto capturedGroups{parse_captured_groups(patterns)};
+    array_type capturedGroups{};
     std::size_t currentPattern{0};
     std::size_t i{};
     for(i = start; i < std::size(input) && currentPattern < std::size(patterns); )
@@ -134,7 +134,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
             ++currentPattern;
             continue;
         }
-        if(auto match{match_alternation(i, input, patterns[currentPattern])}; 
+        if(auto match{match_alternation(i, input, patterns[currentPattern], capturedGroups)}; 
                 match.first)
         {
             i = match.second - 1;
@@ -184,12 +184,14 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
     return pair_type{currentPattern >= std::size(patterns), i};
 }
 
-pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, const array_type& captured)
+pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured)
 { 
     if(auto start{pattern.find("(")}, finish{pattern.find(")")};
        start != std::string::npos && finish != std::string::npos)
     {
-        return process_input(input, pattern.substr(start + 1, finish - start - 1), index);;
+        auto result{process_input(input, pattern.substr(start + 1, finish - start - 1), index)};
+        captured.push_back(input.substr(index, result.second - index));
+        return result;
     }
     else if(pattern[0] == '\\')
     {
@@ -201,18 +203,13 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
         if(isDigit)
         {
             auto digit{std::stoi(pattern.substr(1, std::size(pattern) - 1)) - 1};
-            std::cout << digit << '\n';
-            if(captured[digit].find('|') != std::string::npos)
-            {
-                return process_input(input, captured[digit], index);
-            }
-            return process_input(input, captured[digit].substr(1, std::size(captured[digit]) - 2), index);
+            return process_input(input, captured[digit], index);
         }
     }
     return pair_type{false, index};
 }
 
-pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern)
+pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured)
 {
     if(auto found{pattern.find('|')}; 
        found != std::string::npos)
@@ -224,6 +221,7 @@ pair_type match_alternation(const std::size_t index, const std::string& input, c
             if(auto match{process_input(input, pat, index)}; 
                match.first)
             {
+                captured.push_back(input.substr(index, match.second - index));
                 return match;
             }
         }
