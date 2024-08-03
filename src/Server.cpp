@@ -190,8 +190,8 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
     if(auto start{pattern.find("(")}, finish{pattern.find(")")};
        start != std::string::npos && finish != std::string::npos)
     {
-        std::cout << "substr: " << pattern.substr(start + 1, finish - start) << '\n';
-        return process_input(input, pattern.substr(start + 1, finish - start), index);
+        std::cout << "substr: " << pattern.substr(start + 1, finish - start - 1) << '\n';
+        return process_input(input, pattern.substr(start + 1, finish - start - 1), index);
     }
     else if(pattern[0] == '\\')
     {
