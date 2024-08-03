@@ -101,7 +101,6 @@ array_type parse_pattern(const std::string& pattern)
             }
         }
     }
-    
     return patterns;
 }
 
@@ -114,20 +113,24 @@ array_type parse_captured_groups(const array_type& patterns)
     {
         start = pattern.find('(') != std::string::npos;
         finish = pattern.find(')') != std::string::npos;
-        captured_groups.push_back(pattern);
+        if(start && finish)
+        {
+            captured_groups.push_back(pattern);
+        }
     }
     return captured_groups;
 }
 
 pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start = 0)
 {
+    std::cout << "START\n";
     auto patterns{parse_pattern(pattern)};
     auto capturedGroups{parse_captured_groups(patterns)};
-    
     std::size_t currentPattern{0};
     std::size_t i{};
     for(i = start; i < std::size(input) && currentPattern < std::size(patterns); )
     {
+        std::cout << input[i] << '\n';
         if(match_start_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
@@ -144,6 +147,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
         {
             i = match.second - 1;
             ++currentPattern;
+            std::cout << "INPUT: " << input[i] << '\n';
         }
         else if(auto result{match_one_or_more(i, input, patterns[currentPattern])};
                result > i) 
@@ -170,7 +174,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
         {
             currentPattern = 0;   
         }
-        if(currentPattern < std::size(patterns) && match_end_anchor(i, input, patterns[currentPattern]))
+        if(currentPattern < std::size(patterns) && match_end_anchor(i, input, patterns[currentPattern])) 
         {
             ++currentPattern;
         }
@@ -179,7 +183,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
     if(std::size(patterns) - currentPattern == 1 && patterns[currentPattern].find("?") != std::string::npos)
     {
         ++currentPattern;
-    }
+    } 
     return pair_type{currentPattern >= std::size(patterns), i};
 }
 
@@ -196,6 +200,7 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
         {
             return process_input(input, captured[0], index);
         }
+        std::cout << "CAPTURED: " << captured[0] << '\n';
         return process_input(input, captured[0].substr(1, std::size(captured[0]) - 2), index);
     }
     return pair_type{false, index};
@@ -269,6 +274,8 @@ bool match_end_anchor(const std::size_t index, const std::string& input, const s
 {
     if(pattern == "$")
     {
+        std::cout << "Good\n";
+        std::cout << std::size(input) - index << '\n';
         if(std::size(input) - index <= 1)
         {
             return true;
