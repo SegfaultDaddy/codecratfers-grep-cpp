@@ -123,14 +123,12 @@ array_type parse_captured_groups(const array_type& patterns)
 
 pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start = 0)
 {
-    std::cout << "START\n";
     auto patterns{parse_pattern(pattern)};
     auto capturedGroups{parse_captured_groups(patterns)};
     std::size_t currentPattern{0};
     std::size_t i{};
     for(i = start; i < std::size(input) && currentPattern < std::size(patterns); )
     {
-        std::cout << input[i] << '\n';
         if(match_start_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
@@ -147,7 +145,6 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
         {
             i = match.second - 1;
             ++currentPattern;
-            std::cout << "INPUT: " << input[i] << '\n';
         }
         else if(auto result{match_one_or_more(i, input, patterns[currentPattern])};
                result > i) 
@@ -194,14 +191,22 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
     {
         return process_input(input, pattern.substr(start + 1, finish - start - 1), index);;
     }
-    else if(pattern == "\\1")
+    else if(pattern == "\\")
     {
-        if(captured[0].find('|') != std::string::npos)
+        bool isDigit{false};
+        for(const auto& pat : std::ranges::subrange(std::begin(pattern) + 1, std::end(pattern)))
         {
-            return process_input(input, captured[0], index);
+            isDigit = std::isdigit(pat);
         }
-        std::cout << "CAPTURED: " << captured[0] << '\n';
-        return process_input(input, captured[0].substr(1, std::size(captured[0]) - 2), index);
+        if(isDigit)
+        {
+            auto digit{std::stoi(pattern.substr(1, std::size(pattern) - 1)) - 1};
+            if(captured[digit].find('|') != std::string::npos)
+            {
+                return process_input(input, captured[digit], index);
+            }
+            return process_input(input, captured[digit].substr(1, std::size(captured[digit]) - 2), index);
+        }
     }
     return pair_type{false, index};
 }
@@ -274,8 +279,6 @@ bool match_end_anchor(const std::size_t index, const std::string& input, const s
 {
     if(pattern == "$")
     {
-        std::cout << "Good\n";
-        std::cout << std::size(input) - index << '\n';
         if(std::size(input) - index <= 1)
         {
             return true;
