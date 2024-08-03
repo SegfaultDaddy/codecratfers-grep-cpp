@@ -101,6 +101,7 @@ array_type parse_pattern(const std::string& pattern)
             }
         }
     }
+    
     return patterns;
 }
 
@@ -113,10 +114,7 @@ array_type parse_captured_groups(const array_type& patterns)
     {
         start = pattern.find('(') != std::string::npos;
         finish = pattern.find(')') != std::string::npos;
-        if(start && finish && pattern.find('|') == std::string::npos)
-        {
-            captured_groups.push_back(pattern);
-        }
+        captured_groups.push_back(pattern);
     }
     return captured_groups;
 }
@@ -125,6 +123,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
 {
     auto patterns{parse_pattern(pattern)};
     auto capturedGroups{parse_captured_groups(patterns)};
+    
     std::size_t currentPattern{0};
     std::size_t i{};
     for(i = start; i < std::size(input) && currentPattern < std::size(patterns); )
@@ -134,13 +133,13 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
             ++currentPattern;
             continue;
         }
-        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups)};
+        if(auto match{match_alternation(i, input, patterns[currentPattern])}; 
                 match.first)
         {
             i = match.second - 1;
             ++currentPattern;
         }
-        else if(auto match{match_alternation(i, input, patterns[currentPattern])}; 
+        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups)};
                 match.first)
         {
             i = match.second - 1;
@@ -193,6 +192,10 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
     }
     else if(pattern == "\\1")
     {
+        if(captured[0].find('|') != std::string::npos)
+        {
+            return process_input(input, captured[0], index);
+        }
         return process_input(input, captured[0].substr(1, std::size(captured[0]) - 2), index);
     }
     return pair_type{false, index};
