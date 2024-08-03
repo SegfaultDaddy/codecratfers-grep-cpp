@@ -59,11 +59,11 @@ array_type parse_pattern(const std::string& pattern)
     const std::size_t size{std::size(pattern)};
     for(std::size_t i{0}, j{size}, k{size}; i < size; ++i)
     {   
-        if(j >= size)
+        if(j >= size && k >= size)
         {
             if(pattern[i] == '(')
             {
-                j = i;
+                k = i;
             }
             else if(pattern[i] == '[')
             {
@@ -89,12 +89,12 @@ array_type parse_pattern(const std::string& pattern)
         }
         else
         {
-            if(pattern[i] == ']')
+            if(pattern[i] == ')' && k < size)
             {
-                patterns.emplace_back(pattern.substr(j, i - j + 1));
-                j = size;
+                patterns.emplace_back(pattern.substr(k, i - k + 1));
+                k = size;
             }
-            if(pattern[i] == ')')
+            if(pattern[i] == ']' && j < size)
             {
                 patterns.emplace_back(pattern.substr(j, i - j + 1));
                 j = size;
@@ -145,6 +145,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
         {
             i = match.second - 1;
             ++currentPattern;
+            continue;
         }
         else if(match_group(input[i], patterns[currentPattern]))
         {
@@ -186,7 +187,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
 }
 
 pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, const array_type& captured)
-{
+{ 
     if(auto start{pattern.find("(")}, finish{pattern.find(")")};
        start != std::string::npos && finish != std::string::npos)
     {
