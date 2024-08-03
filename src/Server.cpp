@@ -190,7 +190,6 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
     if(auto start{pattern.find("(")}, finish{pattern.find(")")};
        start != std::string::npos && finish != std::string::npos)
     {
-        std::cout << "substr: " << pattern.substr(start + 1, finish - start - 1) << '\n';
         return process_input(input, pattern.substr(start + 1, finish - start - 1), index);
     }
     else if(pattern[0] == '\\')
@@ -203,13 +202,13 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
                       });
         if(isDigit)
         {
-            auto value{std::stoi(substr)};
+            auto value{std::stoi(substr) - 1};
             auto start{captured[value].find("(")};
             auto finish{captured[value].find(")")};
             if(start != std::string::npos 
                && finish != std::string::npos)
             {
-                return process_input(input, pattern.substr(start + 1, finish - start), index);
+                return process_input(input, captured[value].substr(start + 1, finish - start - 1), index);
             }
         }
     }
