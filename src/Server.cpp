@@ -95,7 +95,7 @@ bool process_input(const std::string& input, const std::string& pattern)
             ++currentPattern;
             continue;
         }
-        if(match_group(input[i], patterns[currentPattern]))
+        else if(match_group(input[i], patterns[currentPattern]))
         {
             ++currentPattern;
         }
@@ -103,16 +103,25 @@ bool process_input(const std::string& input, const std::string& pattern)
                 found != std::string::npos)
         {
             std::string subPat{patterns[currentPattern].substr(0, found)};
+            bool condition{false};
             while(match_group(input[i], subPat) || match_class(input[i], subPat))
             {
+                condition = true;
                 if(i >= std::size(input) - 1)
                 {
                     break;
                 }
                 ++i;
             }
-            ++currentPattern;
-            continue;
+            if(condition)
+            {
+                ++currentPattern;
+                continue;
+            }
+            else
+            {
+                currentPattern = 0;
+            }
         }
         else if(match_class(input[i], patterns[currentPattern]))
         {   
