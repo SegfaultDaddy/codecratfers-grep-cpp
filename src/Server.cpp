@@ -8,12 +8,15 @@
 #include <algorithm>
 
 using array_type = std::vector<std::string>;
+using pair_type = std::pair<bool, std::size_t>;
 
 array_type parse_pattern(const std::string& pattern);
-bool process_input(const std::string& input, const std::string& pattern);
+array_type parse_captured_groups(const array_type& patterns);
+pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start);
 std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern);
 std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern);
-bool match_alternation(const std::size_t index, const std::string& input, const std::string& pattern);
+pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, const array_type& captured);
+pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_start_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_end_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_group(const char ch, const std::string& pattern);
@@ -42,7 +45,7 @@ int main(int argc, char** argv)
     std::string input{};
     std::getline(std::cin, input);
 
-    if(process_input(input, pattern)) 
+    if(process_input(input, pattern, 0).first) 
     {
         return EXIT_SUCCESS;
     } 
@@ -101,19 +104,46 @@ array_type parse_pattern(const std::string& pattern)
     return patterns;
 }
 
-bool process_input(const std::string& input, const std::string& pattern)
+array_type parse_captured_groups(const array_type& patterns)
 {
-    array_type patterns{parse_pattern(pattern)};
+    array_type captured_groups{};
+    bool start{};
+    bool finish{};
+    for(const auto& pattern : patterns)
+    {
+        start = pattern.find('(') != std::string::npos;
+        finish = pattern.find(')') != std::string::npos;
+        if(start && finish && pattern.find('|') == std::string::npos)
+        {
+            captured_groups.push_back(pattern);
+        }
+    }
+    return captured_groups;
+}
+
+pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start = 0)
+{
+    auto patterns{parse_pattern(pattern)};
+    auto capturedGroups{parse_captured_groups(patterns)};
     std::size_t currentPattern{0};
-    for(std::size_t i{0}; i < std::size(input) && currentPattern < std::size(patterns); )
+    std::size_t i{};
+    for(i = start; i < std::size(input) && currentPattern < std::size(patterns); )
     {
         if(match_start_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
             continue;
         }
-        if(match_alternation(i, input, patterns[currentPattern]))
+        if(auto match{match_alternation(i, input, patterns[currentPattern])}; 
+           match.first)
         {
+            i = match.second - 1;
+            ++currentPattern;
+        }
+        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups)}; 
+                match.first)
+        {
+            i = match.second - 1;
             ++currentPattern;
         }
         else if(match_group(input[i], patterns[currentPattern]))
@@ -152,27 +182,57 @@ bool process_input(const std::string& input, const std::string& pattern)
     {
         ++currentPattern;
     }
-    return currentPattern >= std::size(patterns);
+    return pair_type{currentPattern >= std::size(patterns), i};
 }
 
-bool match_alternation(const std::size_t index, const std::string& input, const std::string& pattern)
+pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, const array_type& captured)
 {
-    bool matched{false};
-    if(auto found{pattern.find('|')}; 
-       found != std::string::npos)
+    if(auto start{pattern.find("(")}, finish{pattern.find(")")};
+       start != std::string::npos && finish != std::string::npos)
     {
-        std::array<std::string, 2> patterns{pattern.substr(1, found - 1), pattern.substr(found + 1, std::size(pattern) - found - 2)};
-        const std::string sub{input.substr(index, std::size(input) - index)};
-        for(const auto& pat : patterns)
+        std::cout << "substr: " << pattern.substr(start + 1, finish - start) << '\n';
+        return process_input(input, pattern.substr(start + 1, finish - start), index);
+    }
+    else if(pattern[0] == '\\')
+    {
+        bool isDigit{false};
+        auto substr{pattern.substr(1, std::size(pattern) - 1)};
+        std::for_each(std::begin(substr), std::end(substr), [&](const auto& elem)
+                      {
+                            isDigit = std::isdigit(elem);
+                      });
+        if(isDigit)
         {
-            if(process_input(sub, pat))
+            auto value{std::stoi(substr)};
+            auto start{captured[value].find("(")};
+            auto finish{captured[value].find(")")};
+            if(start != std::string::npos 
+               && finish != std::string::npos)
             {
-                matched = true;
-                break;
+                return process_input(input, pattern.substr(start + 1, finish - start), index);
             }
         }
     }
-    return matched;
+    return pair_type{false, index};
+}
+
+pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern)
+{
+    if(auto found{pattern.find('|')}; 
+       found != std::string::npos)
+    {
+        std::array<std::string, 2> patterns{pattern.substr(1, found - 1), 
+                                            pattern.substr(found + 1, std::size(pattern) - found - 2)};
+        for(const auto& pat : patterns)
+        {
+            if(auto match{process_input(input, pat, index)}; 
+               match.first)
+            {
+                return match;
+            }
+        }
+    }
+    return pair_type{false, index};
 }
 
 std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern)
