@@ -3,6 +3,7 @@
 #include <string>
 #include <functional>
 #include <ranges>
+#include <optional>
 #include <array>
 #include <algorithm>
 
@@ -10,8 +11,10 @@ using array_type = std::vector<std::string>;
 
 array_type parse_pattern(const std::string& pattern);
 bool process_input(const std::string& input, const std::string& pattern);
-bool match_start_anchor(std::size_t index, const std::string& input, const std::string& pattern);
-bool match_end_anchor(std::size_t index, const std::string& input, const std::string& pattern);
+std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern);
+std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern);
+bool match_start_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
+bool match_end_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_group(const char ch, const std::string& pattern);
 bool match_class(const char ch, const std::string& pattern);
 
@@ -67,6 +70,10 @@ array_type parse_pattern(const std::string& pattern)
             {
                 patterns.back() += '+';
             }
+            else if(pattern[i] == '?')
+            {
+                patterns.back() += '?';
+            }
             else
             {
                 patterns.emplace_back(std::string{pattern[i]});
@@ -99,29 +106,19 @@ bool process_input(const std::string& input, const std::string& pattern)
         {
             ++currentPattern;
         }
-        else if(auto found{patterns[currentPattern].find("+")}; 
-                found != std::string::npos)
+        else if(std::size_t result{match_one_or_more(i, input, patterns[currentPattern])};
+                result > i)
         {
-            std::string subPat{patterns[currentPattern].substr(0, found)};
-            bool condition{false};
-            while(match_group(input[i], subPat) || match_class(input[i], subPat))
-            {
-                condition = true;
-                if(i >= std::size(input) - 1)
-                {
-                    break;
-                }
-                ++i;
-            }
-            if(condition)
-            {
-                ++currentPattern;
-                continue;
-            }
-            else
-            {
-                currentPattern = 0;
-            }
+            i = result;
+            ++currentPattern;
+            continue;
+        }
+        else if(auto result{match_zero_or_one(i, input, patterns[currentPattern])};
+                result.has_value())
+        {
+            i = result.value();
+            ++currentPattern;
+            continue;
         }
         else if(match_class(input[i], patterns[currentPattern]))
         {   
@@ -137,10 +134,44 @@ bool process_input(const std::string& input, const std::string& pattern)
         }
         ++i;
     }
+    if(std::size(patterns) - currentPattern == 1 && patterns[currentPattern].find("?") != std::string::npos)
+    {
+        ++currentPattern;
+    }
     return currentPattern >= std::size(patterns);
 }
 
-bool match_start_anchor(std::size_t index, const std::string& input, const std::string& pattern)
+std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern)
+{
+    if(auto found{pattern.find("+")}; 
+       found != std::string::npos)
+    {
+        std::string subPat{pattern.substr(0, found)};
+        std::size_t i{index};
+        while(i < std::size(input) 
+              && ((match_group(input[i], subPat) || match_class(input[i], subPat))))
+        {
+            ++i;
+        }
+        return i;
+    }
+    return index;
+}
+
+
+std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern)
+{
+    if(auto found{pattern.find("?")}; 
+       found != std::string::npos)
+    {
+        std::string subPat{pattern.substr(0, found)};
+        bool matched{match_group(input[index], subPat) || match_class(input[index], subPat)};
+        return index + matched;
+    }
+    return std::nullopt;
+}
+
+bool match_start_anchor(const std::size_t index, const std::string& input, const std::string& pattern)
 {
     if(pattern == "^")
     {
@@ -156,7 +187,7 @@ bool match_start_anchor(std::size_t index, const std::string& input, const std::
     return false;
 }
 
-bool match_end_anchor(std::size_t index, const std::string& input, const std::string& pattern)
+bool match_end_anchor(const std::size_t index, const std::string& input, const std::string& pattern)
 {
     if(pattern == "$")
     {
