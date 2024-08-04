@@ -146,10 +146,8 @@ pair_type process_input(const std::string& input, const std::string& pattern, ar
         else if(auto result{match_one_or_more(i, input, patterns[currentPattern])};
                result > i) 
         {
-            std::cout << "Hello" << '\n';
             i = result - 1;
             ++currentPattern;
-            continue;
         }
         else if(auto result{match_zero_or_one(i, input, patterns[currentPattern])};
                 result.has_value())
@@ -247,7 +245,6 @@ std::size_t match_one_or_more(const std::size_t index, const std::string& input,
         {
             ++i;
         }
-        std::cout << "index: " << index << " i: " << i << '\n';
         return i;
     }
     return index;
@@ -300,7 +297,8 @@ bool match_end_anchor(const std::size_t index, const std::string& input, const s
 bool match_group(const char character, const std::string& pattern)
 {
     if(auto start{pattern.find_first_of("[")}, finish{pattern.find_last_of("]")}; 
-      (start != std::string::npos && finish != std::string::npos) && (start < finish))
+      (start != std::string::npos && finish != std::string::npos) && (start < finish)
+       && std::isalnum(character))
     {
         bool matchCondition{true};
         if(pattern[start + 1] == '^')
