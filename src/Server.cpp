@@ -50,11 +50,6 @@ int main(int argc, char** argv)
     {
         return EXIT_SUCCESS;
     }
-    for(const auto& captured : capturedGroups)
-    {
-        std::cout << captured << '\n';
-    }
-    std::cout << "Failure\n";
     return EXIT_FAILURE;
 }
 
