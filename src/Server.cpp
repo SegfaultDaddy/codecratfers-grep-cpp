@@ -5,6 +5,7 @@
 #include <ranges>
 #include <optional>
 #include <array>
+#include <deque>
 #include <algorithm>
 
 using array_type = std::vector<std::string>;
@@ -49,10 +50,6 @@ int main(int argc, char** argv)
     {
         return EXIT_SUCCESS;
     } 
-    for(const auto& captured : capturedGroups)
-    {
-        std::cout << captured << '\n';
-    }
     std::cout << "Failure\n";
     return EXIT_FAILURE;
 }
@@ -194,8 +191,10 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
         {
             subPat = "^" + subPat;
         }
+        captured.push_back(std::string{});
+        const auto remember{std::size(captured)};
         auto result{process_input(input, subPat, captured, index)};
-        captured.push_back(input.substr(index, result.second - index));
+        captured[remember - 1] = input.substr(index, result.second - index);
         return result;
     }
     else if(pattern[0] == '\\')
