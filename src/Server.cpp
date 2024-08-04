@@ -11,7 +11,7 @@ using array_type = std::vector<std::string>;
 using pair_type = std::pair<bool, std::size_t>;
 
 array_type parse_pattern(const std::string& pattern);
-pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start = 0);
+pair_type process_input(const std::string& input, const std::string& pattern, array_type& captured, const std::size_t start = 0);
 std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern);
 std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern);
 pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured, bool startAnchor = false);
@@ -44,10 +44,15 @@ int main(int argc, char** argv)
     std::string input{};
     std::getline(std::cin, input);
 
-    if(process_input(input, pattern).first) 
+    array_type capturedGroups{};
+    if(process_input(input, pattern, capturedGroups).first) 
     {
         return EXIT_SUCCESS;
     } 
+    for(const auto& captured : capturedGroups)
+    {
+        std::cout << captured << '\n';
+    }
     std::cout << "Failure\n";
     return EXIT_FAILURE;
 }
@@ -56,7 +61,7 @@ array_type parse_pattern(const std::string& pattern)
 {
     array_type patterns{};
     const std::size_t size{std::size(pattern)};
-    for(std::size_t i{0}, j{size}, k{size}; i < size; ++i)
+    for(std::size_t i{0}, j{size}, k{size}, count{0}; i < size; ++i)
     {   
         if(j >= size && k >= size)
         {
@@ -88,10 +93,21 @@ array_type parse_pattern(const std::string& pattern)
         }
         else
         {
+            if(pattern[i] == '(' && k < size)
+            {
+                ++count;
+            }
             if(pattern[i] == ')' && k < size)
             {
-                patterns.emplace_back(pattern.substr(k, i - k + 1));
-                k = size;
+                if(count == 0)
+                {
+                    patterns.emplace_back(pattern.substr(k, i - k + 1));
+                    k = size;
+                }
+                else
+                {
+                    --count;
+                }
             }
             if(pattern[i] == ']' && j < size)
             {
@@ -103,10 +119,9 @@ array_type parse_pattern(const std::string& pattern)
     return patterns;
 }
 
-pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start)
+pair_type process_input(const std::string& input, const std::string& pattern, array_type& captured, const std::size_t start)
 {
     auto patterns{parse_pattern(pattern)};
-    array_type capturedGroups{};
     std::size_t currentPattern{0};
     std::size_t i{};
     bool startAnchor{false};
@@ -118,13 +133,13 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
             startAnchor = true;
             continue;
         }
-        if(auto match{match_alternation(i, input, patterns[currentPattern], capturedGroups)}; 
+        if(auto match{match_alternation(i, input, patterns[currentPattern], captured)}; 
                 match.first)
         {
             i = match.second - 1;
             ++currentPattern;
         }
-        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups, startAnchor)};
+        else if(auto match{match_captured_group(i, input, patterns[currentPattern], captured, startAnchor)};
                 match.first)
         {
             i = match.second - 1;
@@ -171,7 +186,7 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
 
 pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured, bool startAnchor)
 { 
-    if(auto start{pattern.find("(")}, finish{pattern.find(")")};
+    if(auto start{pattern.find_first_of("(")}, finish{pattern.find_last_of(")")};
        start != std::string::npos && finish != std::string::npos)
     {
         auto subPat{pattern.substr(start + 1, finish - start - 1)};
@@ -179,7 +194,7 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
         {
             subPat = "^" + subPat;
         }
-        auto result{process_input(input, subPat, index)};
+        auto result{process_input(input, subPat, captured, index)};
         captured.push_back(input.substr(index, result.second - index));
         return result;
     }
@@ -193,7 +208,7 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
         if(isDigit)
         {
             auto digit{std::stoi(pattern.substr(1, std::size(pattern) - 1)) - 1};
-            return process_input(input, captured[digit], index);
+            return process_input(input, captured[digit], captured, index);
         }
     }
     return pair_type{false, index};
@@ -208,7 +223,7 @@ pair_type match_alternation(const std::size_t index, const std::string& input, c
                                             pattern.substr(found + 1, std::size(pattern) - found - 2)};
         for(const auto& pat : patterns)
         {
-            if(auto match{process_input(input, pat, index)}; 
+            if(auto match{process_input(input, pat, captured, index)}; 
                match.first)
             {
                 captured.push_back(input.substr(index, match.second - index));
