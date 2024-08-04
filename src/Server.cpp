@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     if(process_input(input, pattern, capturedGroups).first) 
     {
         return EXIT_SUCCESS;
-    } 
+    }
     std::cout << "Failure\n";
     return EXIT_FAILURE;
 }
@@ -191,10 +191,10 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
         {
             subPat = "^" + subPat;
         }
-        captured.push_back(std::string{});
         const auto remember{std::size(captured)};
+        captured.push_back(std::string{});
         auto result{process_input(input, subPat, captured, index)};
-        captured[remember - 1] = input.substr(index, result.second - index);
+        captured[remember] = input.substr(index, result.second - index);
         return result;
     }
     else if(pattern[0] == '\\')
@@ -239,9 +239,10 @@ std::size_t match_one_or_more(const std::size_t index, const std::string& input,
        found != std::string::npos)
     {
         std::string subPat{pattern.substr(0, found)};
+        std::cout << subPat << '\n';
         std::size_t i{index};
-        while(index < std::size(input) && (match_group(input[i], subPat) 
-              || match_class(input[i], subPat)))
+        while(i < std::size(input) 
+              && (match_group(input[i], subPat) || match_class(input[i], subPat)))
         {
             ++i;
         }
@@ -296,7 +297,7 @@ bool match_end_anchor(const std::size_t index, const std::string& input, const s
 
 bool match_group(const char character, const std::string& pattern)
 {
-    if(auto start{pattern.find("[")}, finish{pattern.find("]")}; 
+    if(auto start{pattern.find_first_of("[")}, finish{pattern.find_last_of("]")}; 
       (start != std::string::npos && finish != std::string::npos) && (start < finish))
     {
         bool matchCondition{true};
@@ -305,7 +306,7 @@ bool match_group(const char character, const std::string& pattern)
             matchCondition = false;
             start += 1;
         }
-        for(const auto ch : std::ranges::subrange(std::cbegin(pattern) + start + 1, std::cbegin(pattern) + finish))
+        for(const auto ch : pattern.substr(start, finish - start))
         {
             if(ch == character)
             {
