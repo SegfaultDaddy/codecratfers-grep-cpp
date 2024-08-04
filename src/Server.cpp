@@ -225,7 +225,9 @@ pair_type match_alternation(const std::size_t index, const std::string& input, c
             if(auto match{process_input(input, pat, captured, index)}; 
                match.first)
             {
-                captured.push_back(input.substr(index, match.second - index));
+                const auto remember{std::size(captured)};
+                captured.push_back(std::string{});
+                captured[remember] = input.substr(index, match.second - index);
                 return match;
             }
         }
