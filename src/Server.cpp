@@ -50,6 +50,10 @@ int main(int argc, char** argv)
     {
         return EXIT_SUCCESS;
     }
+    for(const auto& captured : capturedGroups)
+    {
+        std::cout << captured << '\n';
+    }
     std::cout << "Failure\n";
     return EXIT_FAILURE;
 }
@@ -216,7 +220,7 @@ pair_type match_captured_group(const std::size_t index, const std::string& input
 pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured)
 {
     if(auto found{pattern.find('|')}; 
-       found != std::string::npos)
+       found != std::string::npos && pattern[1] != '(')
     {
         std::array<std::string, 2> patterns{pattern.substr(1, found - 1), 
                                             pattern.substr(found + 1, std::size(pattern) - found - 2)};
