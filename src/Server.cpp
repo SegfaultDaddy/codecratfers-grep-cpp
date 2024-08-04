@@ -109,11 +109,13 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
     array_type capturedGroups{};
     std::size_t currentPattern{0};
     std::size_t i{};
+    bool startAnchor{false};
     for(i = start; i < std::size(input) && currentPattern < std::size(patterns); )
     {
         if(match_start_anchor(i, input, patterns[currentPattern]))
         {
             ++currentPattern;
+            startAnchor = true;
             continue;
         }
         if(auto match{match_alternation(i, input, patterns[currentPattern], capturedGroups)}; 
@@ -122,11 +124,12 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
             i = match.second - 1;
             ++currentPattern;
         }
-        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups)};
+        else if(auto match{match_captured_group(i, input, patterns[currentPattern], capturedGroups, startAnchor)};
                 match.first)
         {
             i = match.second - 1;
             ++currentPattern;
+            startAnchor = false;
         }
         else if(auto result{match_one_or_more(i, input, patterns[currentPattern])};
                result > i) 
