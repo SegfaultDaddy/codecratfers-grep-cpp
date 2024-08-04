@@ -11,11 +11,10 @@ using array_type = std::vector<std::string>;
 using pair_type = std::pair<bool, std::size_t>;
 
 array_type parse_pattern(const std::string& pattern);
-array_type parse_captured_groups(const array_type& patterns);
-pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start);
+pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start = 0);
 std::size_t match_one_or_more(const std::size_t index, const std::string& input, const std::string& pattern);
 std::optional<std::size_t> match_zero_or_one(const std::size_t index, const std::string& input, const std::string& pattern);
-pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured);
+pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured, bool startAnchor = false);
 pair_type match_alternation(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured);
 bool match_start_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
 bool match_end_anchor(const std::size_t index, const std::string& input, const std::string& pattern);
@@ -45,7 +44,7 @@ int main(int argc, char** argv)
     std::string input{};
     std::getline(std::cin, input);
 
-    if(process_input(input, pattern, 0).first) 
+    if(process_input(input, pattern).first) 
     {
         return EXIT_SUCCESS;
     } 
@@ -104,24 +103,7 @@ array_type parse_pattern(const std::string& pattern)
     return patterns;
 }
 
-array_type parse_captured_groups(const array_type& patterns)
-{
-    array_type captured_groups{};
-    bool start{};
-    bool finish{};
-    for(const auto& pattern : patterns)
-    {
-        start = pattern.find('(') != std::string::npos;
-        finish = pattern.find(')') != std::string::npos;
-        if(start && finish)
-        {
-            captured_groups.push_back(pattern);
-        }
-    }
-    return captured_groups;
-}
-
-pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start = 0)
+pair_type process_input(const std::string& input, const std::string& pattern, const std::size_t start)
 {
     auto patterns{parse_pattern(pattern)};
     array_type capturedGroups{};
@@ -184,12 +166,17 @@ pair_type process_input(const std::string& input, const std::string& pattern, co
     return pair_type{currentPattern >= std::size(patterns), i};
 }
 
-pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured)
+pair_type match_captured_group(const std::size_t index, const std::string& input, const std::string& pattern, array_type& captured, bool startAnchor)
 { 
     if(auto start{pattern.find("(")}, finish{pattern.find(")")};
        start != std::string::npos && finish != std::string::npos)
     {
-        auto result{process_input(input, pattern.substr(start + 1, finish - start - 1), index)};
+        auto subPat{pattern.substr(start + 1, finish - start - 1)};
+        if(startAnchor)
+        {
+            subPat = "^" + subPat;
+        }
+        auto result{process_input(input, subPat, index)};
         captured.push_back(input.substr(index, result.second - index));
         return result;
     }
