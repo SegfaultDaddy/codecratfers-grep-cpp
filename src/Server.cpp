@@ -146,8 +146,10 @@ pair_type process_input(const std::string& input, const std::string& pattern, ar
         else if(auto result{match_one_or_more(i, input, patterns[currentPattern])};
                result > i) 
         {
+            std::cout << "Hello" << '\n';
             i = result - 1;
             ++currentPattern;
+            continue;
         }
         else if(auto result{match_zero_or_one(i, input, patterns[currentPattern])};
                 result.has_value())
@@ -239,13 +241,13 @@ std::size_t match_one_or_more(const std::size_t index, const std::string& input,
        found != std::string::npos)
     {
         std::string subPat{pattern.substr(0, found)};
-        std::cout << subPat << '\n';
         std::size_t i{index};
         while(i < std::size(input) 
               && (match_group(input[i], subPat) || match_class(input[i], subPat)))
         {
             ++i;
         }
+        std::cout << "index: " << index << " i: " << i << '\n';
         return i;
     }
     return index;
